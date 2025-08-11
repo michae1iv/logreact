@@ -1,0 +1,12 @@
+postgres-init/*
+kafka/*
+logstash/*
+filebeat/*
+docker-compose.yml
+init-topics.sh
+
+app/Dockerfile
+app/rules
+app/rules.json
+
+app/api/endpoints/regulars.go

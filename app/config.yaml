@@ -1,0 +1,66 @@
+server:
+  port: 8080  # Web-interface's port
+  allowed_origins: ["http://localhost:3000", "http://192.168.50.47:3000"] # frontend address
+
+database:
+  host: "localhost"          # address of PostgreSQL
+  port: 5432                 # PostrgreSQL port
+  user: "cor_admin"          # Username for db
+  password: "2002"           # password for db
+  dbname: "maindb"           # Name of db
+  sslmode: "disable"         # SSL ("disable", "require", "verify-full" and etc)
+
+rule_handler: 
+  r_buff_size: 1000 # Size of buffer for RuleHandler reader, if buffer is full Reader waits while RuleHandler reads message
+  w_buff_size: 100 # Size of buffer for Writer, if buffer is full GlobalHandler goroutine waits while Writer reads message
+  frame_buff: 100 # Size of buffer for Frame
+  ukey_name: "ukey" # Name of unique key field for logs
+
+reader:
+  kafka:
+    enable: true
+    brokers:
+      - "localhost:9092"   # address of Apache Kafka broker
+    topic: "logs"          # topic
+    group_id: "myGroup"    # Group ID
+    client_id: "logreact"  # Unique client id
+    auto_offset_reset: "latest"
+    max_poll_records: 50000
+    #   protocol: "SASL_SSL"       # PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL
+    #   mechanism: "PLAIN"         # PLAIN, SCRAM-SHA-256, SCRAM-SHA-512
+    #   username: "your_username"
+    #   password: "your_password"
+    #   tls_enabled: true
+    #   auto_offset_reset: "earliest"   # earliest / latest
+    #   enable_auto_commit: false
+    #   auto_commit_interval_ms: 5000
+    #   max_poll_records: 100
+    #   fetch_min_bytes: 1000
+    #   fetch_max_wait_ms: 500
+    #   heartbeat_interval_ms: 3000
+    #   session_timeout_ms: 10000
+
+
+writer:
+  kafka:
+    enable: true
+    brokers:
+      - "localhost:9092"
+    topic: "alerts"
+    acks: "all"               # 0 / 1 / all
+    retries: 5
+    compression_type: "snappy" # gzip / snappy / lz4 / zstd / none
+    linger_ms: 10
+    batch_size: 16384
+  postgre:
+    enable: true
+
+
+
+
+
+logging:
+  log_path: "/var/log/logreact"  # Path for logs
+
+authentication:
+  jwt_secret_key: "your_secret_key" # Secret for jwt tokens, CHANGE BEFORE PRODUCTION!!!!!!!

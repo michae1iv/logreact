@@ -1,0 +1,615 @@
+openapi: 3.0.3
+info:
+  title: Logreact API
+  description: API for managing authentication, users, groups, rules, and lists in the Logreact system.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+  
+tags:
+  - name: admin
+    description: Admin Panel
+    externalDocs:
+      description: Manage users and groups
+      url: /api/admin
+  - name: lists
+    description: Manage lists
+    externalDocs:
+      description: Add, change, delete lists
+      url: /api/lists
+  - name: rules
+    description: Manage rules
+  - name: auth
+    description: Login and logout
+  - name: statistic
+    description: Get statistic of application
+    
+
+paths:
+  /api/auth/login:
+    post:
+      tags: 
+        - auth
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200': { description: User successfully logged in }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+
+  /api/auth/logout:
+    get:
+      tags: 
+        - auth
+      summary: Logout user
+      responses:
+        '200': { description: Successfully logged out }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+
+  /api/rules:
+    get:
+      tags: 
+        - rules
+      summary: Get all rules
+      responses:
+        '200':
+          description: All Rules lists
+          content:
+            application/json:
+                schema: 
+                  type: array
+                  items:
+                    { $ref: '#/components/schemas/ShortRule' }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/rules/{id}:
+    get:
+      tags: 
+        - rules
+      summary: Get rule by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': 
+          description: Rule details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Rule' }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+    patch:
+      tags: 
+        - rules
+      summary: Update rule by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Rule' }
+      responses:
+        '200': { description: Rule updated }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+    delete:
+      tags: 
+        - rules
+      summary: Delete rule by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Rule deleted }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/rules/create:
+    post:
+      tags: 
+        - rules
+      summary: Create new rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Rule' }
+      responses:
+        '200': { description: Rule created }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/lists:
+    get:
+      tags: 
+        - lists
+      summary: Get all lists
+      responses:
+        '200':
+          description: All lists
+          content:
+            application/json:
+                schema: 
+                  type: array
+                  items:
+                    { $ref: '#/components/schemas/List' }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/lists/{id}:
+    get:
+      tags: 
+        - lists
+      summary: Get list by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/List' }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+    patch:
+      tags: 
+        - lists
+      summary: Update list by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EditList' }
+      responses:
+        '200': { description: List updated }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+    delete:
+      tags: 
+        - lists
+      summary: Delete list by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: List deleted }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/lists/create:
+    post:
+      tags: 
+        - lists
+      summary: Create new list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/List' }
+      responses:
+        '200': { description: List created }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/admin/users:
+    get:
+      tags: 
+        - admin
+      summary: Get all users
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  { $ref: '#/components/schemas/ShortUser' }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/admin/users/{id}:
+    get:
+      tags: 
+        - admin
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+          
+    patch:
+      tags: 
+        - admin
+      summary: Update user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/User' }
+      responses:
+        '200': { description: User updated }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+    delete:
+      tags: 
+        - admin      
+      summary: Delete user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: User deleted }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/admin/users/create:
+    post:
+      tags: 
+        - admin      
+      summary: Create new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/User' }
+      responses:
+        '200': { description: User created }
+
+  /api/admin/groups:
+    get:
+      tags: 
+        - admin      
+      summary: Get all groups
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  { $ref: '#/components/schemas/ShortGroup' }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/admin/groups/{id}:
+    get:
+      tags: 
+        - admin      
+      summary: Get group by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Group' }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+    patch:
+      tags: 
+        - admin      
+      summary: Update group by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Group' }
+      responses:
+        '200': { description: Group updated }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+    delete:
+      tags: 
+        - admin      
+      summary: Delete group by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Group deleted }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/admin/groups/create:
+    post:
+      tags: 
+        - admin      
+      summary: Create new group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Group' }
+      responses:
+        '200': { description: Group created }
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
+  /api/stats/alerts:
+    parameters:
+        - name: amount
+          in: query
+          required: false
+          schema: { type: integer }
+        - name: since
+          in: query
+          required: false
+          schema: { type: string }
+        - name: to
+          in: query
+          required: false
+          schema: { type: string }
+    get:
+      tags: 
+        - statistic
+      summary: Get system statistics
+      responses:
+        '200':
+          description: Alerts
+          content:
+           application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  example: {"added_fields":{"from":"logreact","key":"nginx_login_bruteforce","message":"Попытка брутфорса на /login от 192.168.1.13"},"inherited_fields":{"http.client_ip":"192.168.1.13","http.uri":"localhost:443/admin/login"},"rule":"NginxLoginBruteforce","sev_level":3,"timestamp":"2025-07-01T12:18:39.314718596Z"}
+        '400': { description: Bad request }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+                
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    Rule:
+      type: object
+      required: [rule, ukey, params, condition, alert]
+      properties:
+        rule:
+          type: string
+        ukey:
+          type: string
+        params:
+          type: object
+          properties:
+            ttl:
+              type: string
+            sev_level:
+              type: integer
+            desc:
+              type: string
+            no_alert:
+              type: boolean
+        condition:
+          $ref: '#/components/schemas/Condition'
+        alert:
+          type: object
+          properties:
+            fields:
+              type: string
+            addfields:
+              type: object
+              properties:
+                message:
+                  type: string
+                from:
+                  type: string
+                key:
+                  type: string
+                  
+    ShortRule:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        rule:
+          type: string
+          example: "ExampleRule"
+        ukey:
+          type: string
+          example: "auth.log"
+
+    Condition:
+      type: object
+      required: [logic, freq, times]
+      properties:
+        logic:
+          type: string
+        freq:
+          type: string
+        times:
+          type: integer
+        then:
+          $ref: '#/components/schemas/Condition'
+        otherwise:
+          $ref: '#/components/schemas/Condition'
+
+    User:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        isActive:
+          type: boolean
+        changePasswordOnFirstLogin:
+          type: boolean
+        group:
+          type: integer
+      
+    ShortUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        group:
+          type: string
+        is_active:
+          type: boolean
+
+    Group:
+      type: object
+      properties:
+        groupname:
+          type: string
+        desc:
+          type: string
+        is_active:
+          type: boolean
+        perm:
+          type: object
+          properties:
+            rule:
+              type: string
+            list:
+              type: string
+            admin:
+              type: boolean
+              
+    ShortGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        groupname:
+          type: string
+        desc:
+          type: string
+    
+
+    EditList:
+      type: object
+      properties:
+        name:
+          type: string
+        desc:
+          type: string
+        add:
+          type: array
+          items:
+           type: string
+        del:
+          type: array
+          items:
+           type: string
+
+    List:
+      type: object
+      properties:
+        name:
+          type: string
+        desc:
+          type: string
+        list:
+          type: string
