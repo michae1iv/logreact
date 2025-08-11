@@ -132,7 +132,6 @@ func (g GlobalHandler) createFrame(ctx context.Context, ukey string) *Frame {
 		Ukeys:          ukey,
 		WorkersPointer: make(map[string]*Worker),
 		LogChan:        make(chan map[string]interface{}, 1000),
-		AlertChan:      make(chan []byte, 10),
 		RuleChan:       make(chan *Rule),
 	}
 	go fr.StartFrame(ctx)

@@ -10,7 +10,6 @@ type Frame struct {
 	WorkersPointer map[string]*Worker          // Pool of workers
 	Ukeys          string                      // unique keys, if slice is given separator is ,
 	LogChan        chan map[string]interface{} // Channel for logs
-	AlertChan      chan []byte                 // Channel for alerts, alerts deliveres to GlobalHandler
 	RuleChan       chan *Rule                  // Channel for rules, if no Rule with such Rule_Name then creating new one, else deleting rule from map
 }
 

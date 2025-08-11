@@ -1,0 +1,1057 @@
+[
+  {
+    "rule": "SSH Brute Force_1",
+    "ukey": "auth.log",
+    "params": {
+      "ttl": "1h",
+      "sev_level": 3,
+      "desc": "Правило для обнаружения SSH Brute Force",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.program == 'sshd' AND event.message: 'Failed password' AND source.ip = $STICKY$",
+      "freq": "100/min"
+    },
+    "alert": {
+      "fields": "source.ip, event.program",
+      "addfields": {
+        "message": "Попытка брутфорса SSH от %source.ip%",
+        "from": "logreact",
+        "key": "ssh_bruteforce"
+      }
+    }
+  },
+  {
+    "rule": "ADAdminAdd_1",
+    "ukey": "windows.security",
+    "params": {
+      "ttl": "30m",
+      "sev_level": 4,
+      "desc": "Добавление пользователя в группу админов AD",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.id == 4732 AND TargetUserName = $STICKY$",
+      "then": {
+        "logic": "event.id == 4728"
+      }
+    },
+    "alert": {
+      "fields": "TargetUserName, event.id",
+      "addfields": {
+        "message": "Пользователь добавлен в группу администраторов %TargetUserName%",
+        "from": "logreact",
+        "key": "ad_admin_addition"
+      }
+    }
+  },
+  {
+    "rule": "KerberoastingDetection_1",
+    "ukey": "windows.security",
+    "params": {
+      "ttl": "1h",
+      "sev_level": 5,
+      "desc": "Запрос Kerberos билетов для сервисных аккаунтов",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.id == 4769 AND ServiceName = $STICKY$",
+      "freq": "10/min"
+    },
+    "alert": {
+      "fields": "ServiceName, event.id",
+      "addfields": {
+        "message": "Обнаружена попытка kerberoasting на аккаунт %ServiceName%",
+        "from": "logreact",
+        "key": "kerberoasting"
+      }
+    }
+  },
+  {
+    "rule": "Privilege_Escalation_AD",
+    "ukey": "windows.security",
+    "params": {
+      "ttl": "20m",
+      "sev_level": 5,
+      "desc": "Подозрение на эскалацию привилегий",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.id == 4670 AND object.name CONTAINS 'SAM' AND source.user = $STICKY$",
+      "then": {
+        "logic": "event.id == 4672 AND source.user = $STICKY$"
+      }
+    },
+    "alert": {
+      "fields": "source.user, object.name",
+      "addfields": {
+        "message": "Возможная эскалация прав пользователем %source.user%",
+        "from": "logreact",
+        "key": "priv_escalation_ad"
+      }
+    }
+  },
+  {
+    "rule": "AD_AdminUserCreation_1",
+    "ukey": "windows.security",
+    "params": {
+      "sev_level": 5,
+      "desc": "Создание администратора в AD",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.id == 4720 AND event.message: 'Domain Admins'"
+    },
+    "alert": {
+      "fields": "source.user, target.user",
+      "addfields": {
+        "message": "Создание учетной записи администратора %target.user% пользователем %source.user%",
+        "from": "logreact",
+        "key": "ad_admin_create"
+      }
+    }
+  },
+  {
+    "rule": "Linux_Suspicious_Binary_Regex",
+    "ukey": "syslog",
+    "params": {
+      "sev_level": 3,
+      "desc": "Правило для обнаружения подозрительных бинарников через список регулярных выражений",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.process.name ~ SuspiciousBinaries AND (event.process.parent == 'bash' OR event.process.parent == 'python')"
+    },
+    "alert": {
+      "fields": "host.name, event.process.name",
+      "addfields": {
+        "message": "Запуск подозрительного бинарника %event.process.name% на %host.name%",
+        "from": "logreact",
+        "key": "linux_susp_bin"
+      }
+    }
+  },
+  {
+    "rule": "Linux_Sudo_Group_Modification_1",
+    "ukey": "auth.log",
+    "params": {
+      "sev_level": 4,
+      "desc": "Добавление пользователя в группу sudo",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.program == 'usermod' AND event.message: 'sudo' AND event.message: 'added to group'"
+    },
+    "alert": {
+      "fields": "source.user, target.user",
+      "addfields": {
+        "message": "Пользователь %source.user% добавил %target.user% в группу sudo",
+        "from": "logreact",
+        "key": "sudo_group_add"
+      }
+    }
+  },
+  {
+    "rule": "Linux_Netcat_Listener_1",
+    "ukey": "auditd",
+    "params": {
+      "sev_level": 7,
+      "desc": "Обнаружен запуск прослушивающего процесса netcat",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.process.name == 'nc' AND event.command_line: '-lvp'"
+    },
+    "alert": {
+      "fields": "host.name",
+      "addfields": {
+        "message": "Обнаружен запуск netcat в режиме прослушивания на %host.name%",
+        "from": "logreact",
+        "key": "netcat_listener"
+      }
+    }
+  },
+  {
+    "rule": "Windows_LSASS_Dump_Attempt",
+    "ukey": "Sysmon",
+    "params": {
+      "sev_level": 6,
+      "desc": "Попытка создания дампа процесса LSASS",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.id == 10 AND event.target.process.name == 'lsass.exe' AND event.image: 'procdump'"
+    },
+    "alert": {
+      "fields": "source.user, event.image, event.target.process.name",
+      "addfields": {
+        "message": "Попытка дампа LSASS.exe пользователем %source.user% через %event.image%",
+        "from": "logreact",
+        "key": "lsass_dump"
+      }
+    }
+  },
+  {
+    "rule": "Windows_Antivirus_Stop",
+    "ukey": "windows.security",
+    "params": {
+      "sev_level": 6,
+      "desc": "Отключение или остановка антивируса",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.id == 7036 AND event.message: 'stopped' AND (event.service.name: 'Defender' OR event.service.name: 'antivirus')"
+    },
+    "alert": {
+      "fields": "source.user, event.service.name",
+      "addfields": {
+        "message": "Служба защиты %event.service.name% была остановлена пользователем %source.user%",
+        "from": "logreact",
+        "key": "antivirus_disabled"
+      }
+    }
+  },
+  {
+    "rule": "Linux_SystemFile_Modification",
+    "ukey": "auditd",
+    "params": {
+      "sev_level": 4,
+      "desc": "Изменение системных файлов пользователем",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.syscall == 'open' AND event.filename: '/etc/' AND event.access_mode: 'write'"
+    },
+    "alert": {
+      "fields": "source.user, event.filename",
+      "addfields": {
+        "message": "Пользователь %source.user% изменил системный файл %event.filename%",
+        "from": "logreact",
+        "key": "system_file_mod"
+      }
+    }
+  },
+  {
+    "rule": "Local_Privilege_Escalation_69",
+    "ukey": "auditd",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 5,
+      "desc": "Признаки локального повышения привилегий",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.syscall == 'setuid' AND source.user != 'root' AND event.uid == 0"
+    },
+    "alert": {
+      "fields": "source.user, host.name",
+      "addfields": {
+        "message": "LPE: пользователь %source.user% получил root-доступ на %host.name%",
+        "from": "logreact",
+        "key": "lpe_attempt"
+      }
+    }
+  },
+  {
+    "rule": "NginxDirectoryScan",
+    "ukey": "nginx.access",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 3,
+      "desc": "Частые ошибки 404 могут указывать на сканирование директорий",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "http.status == 404 AND http.client_ip = $STICKY$",
+      "freq": "50/min"
+    },
+    "alert": {
+      "fields": "http.client_ip, http.uri",
+      "addfields": {
+        "message": "Обнаружено сканирование Nginx: много 404 от %http.client_ip%",
+        "from": "logreact",
+        "key": "nginx_scan_404"
+      }
+    }
+  },
+  {
+    "rule": "NginxSQLiAttempt",
+    "ukey": "nginx.access",
+    "params": {
+      "ttl": "1h",
+      "sev_level": 3,
+      "desc": "Попытка SQL-инъекции в URI запроса",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "http.uri: 'UNION SELECT' OR http.uri: 'DROP TABLE' OR http.uri: '--' AND http.client_ip = $STICKY$"
+    },
+    "alert": {
+      "fields": "http.client_ip, http.uri",
+      "addfields": {
+        "message": "Возможная SQL-инъекция от %http.client_ip% в запросе %http.uri%",
+        "from": "logreact",
+        "key": "nginx_sql_injection"
+      }
+    }
+  },
+  {
+    "rule": "NginxLoginBruteforce",
+    "ukey": "nginx.access",
+    "params": {
+      "ttl": "15m",
+      "sev_level": 3,
+      "desc": "Множественные попытки входа на /login",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "http.uri: '/login' AND http.status == 401 AND http.client_ip = $STICKY$",
+      "freq": "5/min"
+    },
+    "alert": {
+      "fields": "http.client_ip, http.uri",
+      "addfields": {
+        "message": "Попытка брутфорса на /login от %http.client_ip%",
+        "from": "logreact",
+        "key": "nginx_login_bruteforce"
+      }
+    }
+  },
+  {
+    "rule": "DoS Attack",
+    "ukey": "nginx.access",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 3,
+      "desc": "DoS",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "http.method == 'POST' OR http.method == 'GET' AND http.client_ip = $STICKY$",
+      "freq": "1000/min"
+    },
+    "alert": {
+      "fields": "http.client_ip",
+      "addfields": {
+        "message": "Потенциальная DoS-атака: много POST от %http.client_ip%",
+        "from": "logreact",
+        "key": "nginx_dos_post"
+      }
+    }
+  },
+  {
+    "rule": "CiscoUnknownLoginSource",
+    "ukey": "syslog.cisco",
+    "params": {
+      "sev_level": 4,
+      "desc": "Вход на устройство с неизвестного IP",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "syslog.message: 'login' AND syslog.src_ip !-> trusted_ips"
+    },
+    "alert": {
+      "fields": "syslog.src_ip, syslog.user",
+      "addfields": {
+        "message": "Вход с неизвестного IP %syslog.src_ip% пользователем %syslog.user%",
+        "from": "logreact",
+        "key": "cisco_untrusted_login"
+      }
+    }
+  },
+  {
+    "rule": "CiscoARPOverload",
+    "ukey": "syslog.cisco",
+    "params": {
+      "sev_level": 4,
+      "desc": "Переполнение таблицы ARP на устройстве",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "syslog.message CONTAINS 'ARP table overflow'"
+    },
+    "alert": {
+      "fields": "syslog.hostname",
+      "addfields": {
+        "message": "ARP overflow на устройстве %syslog.hostname%",
+        "from": "logreact",
+        "key": "cisco_arp_overflow"
+      }
+    }
+  },
+  {
+    "rule": "Horizontal_Port_Scan",
+    "ukey": "netflow",
+    "params": {
+      "ttl": "1m",
+      "sev_level": 4,
+      "desc": "Горизонтальное сканирование портов (один IP сканирует много портов)",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "network.src_ip = $STICKY$ AND network.dest_port = $DIFF$",
+      "freq": "20/min"
+    },
+    "alert": {
+      "fields": "network.src_ip, network.dest_ip, network.dest_port",
+      "addfields": {
+        "message": "Обнаружено горизонтальное сканирование портов с %network.src_ip%",
+        "from": "logreact",
+        "key": "horizontal_port_scan"
+      }
+    }
+  },
+  {
+    "rule": "Vertical_Port_Scan",
+    "ukey": "netflow",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 4,
+      "desc": "Вертикальное сканирование (один порт к разным IP)",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "network.dest_port = $STICKY$ AND network.src_ip = $DIFF$",
+      "freq": "20/min"
+    },
+    "alert": {
+      "fields": "network.src_ip, network.dest_port",
+      "addfields": {
+        "message": "Обнаружено вертикальное сканирование порта %network.dest_port%",
+        "from": "logreact",
+        "key": "vertical_port_scan"
+      }
+    }
+  },
+  {
+    "rule": "Inbound_Blacklist_Hit",
+    "ukey": "netflow",
+    "params": {
+      "sev_level": 5,
+      "desc": "Входящее соединение с IP из черного списка",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "network.src_ip -> 'IPv4Blacklist' OR network.src_ip -> 'IPv6Blacklist'"
+    },
+    "alert": {
+      "fields": "network.src_ip, network.dest_ip",
+      "addfields": {
+        "message": "Соединение от заблокированного IP %network.src_ip%",
+        "from": "logreact",
+        "key": "inbound_blacklist"
+      }
+    }
+  },
+  {
+    "rule": "Outbound_Blacklist_Hit",
+    "ukey": "netflow",
+    "params": {
+      "sev_level": 5,
+      "desc": "Исходящее соединение к IP из черного списка",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "network.dest_ip -> 'IPv4Blacklist' OR network.dest_ip -> 'IPv6Blacklist'"
+    },
+    "alert": {
+      "fields": "network.src_ip, network.dest_ip",
+      "addfields": {
+        "message": "Попытка исходящего подключения к IP из черного списка: %network.dest_ip%",
+        "from": "logreact",
+        "key": "outbound_blacklist"
+      }
+    }
+  },
+  {
+    "rule": "App_Launch_Denied",
+    "ukey": "antivirus.log",
+    "params": {
+      "ttl": "15m",
+      "sev_level": 3,
+      "desc": "Запуск запрещённого ПО",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message CONTAINS 'Application launch denied'"
+    },
+    "alert": {
+      "fields": "host.name, event.process.name",
+      "addfields": {
+        "message": "На хосте %host.name% был заблокирован запуск %event.process.name%",
+        "from": "logreact",
+        "key": "app_launch_blocked"
+      }
+    }
+  },
+  {
+    "rule": "Malware_On_Multiple_Hosts",
+    "ukey": "antivirus.log",
+    "params": {
+      "ttl": "5m",
+      "sev_level": 5,
+      "desc": "Обнаружено одно и то же ВПО на множестве хостов",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.virus.name = $STICKY$ AND host.name: $DIFF$",
+      "freq": "5/min"
+    },
+    "alert": {
+      "fields": "event.virus.name, host.name",
+      "addfields": {
+        "message": "Вирус %event.virus.name% обнаружен на нескольких хостах",
+        "from": "logreact",
+        "key": "virus_multi_host"
+      }
+    }
+  },
+  {
+    "rule": "Malware_Cannot_Be_Deleted",
+    "ukey": "antivirus.log",
+    "params": {
+      "ttl": "30m",
+      "sev_level": 5,
+      "desc": "Обнаружено ВПО, которое не удалось удалить",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message CONTAINS 'unable to delete' OR event.result == 'fail'"
+    },
+    "alert": {
+      "fields": "event.file.path, host.name",
+      "addfields": {
+        "message": "Не удалось удалить вредоносный объект %event.file.path% на хосте %host.name%",
+        "from": "logreact",
+        "key": "malware_undeletable"
+      }
+    }
+  },
+    {
+    "rule": "AV_Update_Failure",
+    "ukey": "antivirus.log",
+    "params": {
+      "ttl": "1h",
+      "sev_level": 2,
+      "desc": "Не удалось обновить базы антивируса",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message: 'Update failed'"
+    },
+    "alert": {
+      "fields": "host.name",
+      "addfields": {
+        "message": "Ошибка обновления антивирусных баз на %host.name%",
+        "from": "logreact",
+        "key": "av_update_fail"
+      }
+    }
+  },
+    {
+    "rule": "Suspicious_Script_Detected",
+    "ukey": "antivirus.log",
+    "params": {
+      "ttl": "30m",
+      "sev_level": 4,
+      "desc": "Обнаружен подозрительный скрипт",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message: 'suspicious script' OR event.virus.name: 'script'"
+    },
+    "alert": {
+      "fields": "event.virus.name, host.name",
+      "addfields": {
+        "message": "Обнаружен вредоносный скрипт %event.virus.name% на %host.name%",
+        "from": "logreact",
+        "key": "suspicious_script"
+      }
+    }
+  },
+    {
+    "rule": "AV_Database_Too_Old",
+    "ukey": "antivirus.log",
+    "params": {
+      "ttl": "1h",
+      "sev_level": 3,
+      "desc": "Антивирусные базы устарели",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message: 'databases are out of date'"
+    },
+    "alert": {
+      "fields": "host.name",
+      "addfields": {
+        "message": "Устаревшие базы антивируса на %host.name%",
+        "from": "logreact",
+        "key": "db_outdated"
+      }
+    }
+  },
+  {
+    "rule": "Webshell_Command_Exec_53",
+    "ukey": "nginx.access",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 5,
+      "desc": "Попытка выполнить команду через webshell",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "http.uri CONTAINS 'cmd=' OR http.uri CONTAINS 'exec='"
+    },
+    "alert": {
+      "fields": "http.client_ip, http.uri",
+      "addfields": {
+        "message": "Обнаружена попытка командного выполнения: %http.uri%",
+        "from": "logreact",
+        "key": "webshell_cmd_exec"
+      }
+    }
+  },
+  {
+    "rule": "RDP_Brute_Force",
+    "ukey": "windows.security",
+    "params": {
+      "ttl": "15m",
+      "sev_level": 4,
+      "desc": "Множественные неудачные входы через RDP",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.id == 4625 AND event.logon_type == 10 AND source.ip = $STICKY$",
+      "freq": "10/min"
+    },
+    "alert": {
+      "fields": "source.ip, event.username",
+      "addfields": {
+        "message": "Подозрение на brute-force через RDP от %source.ip%",
+        "from": "logreact",
+        "key": "rdp_brute"
+      }
+    }
+  },
+  {
+    "rule": "Massive_Email_Spam",
+    "ukey": "mail.gateway",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 5,
+      "desc": "Массовая рассылка из одного источника",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "smtp.sender_ip = $STICKY$",
+      "freq": "50/min"
+    },
+    "alert": {
+      "fields": "smtp.sender_ip, smtp.sender",
+      "addfields": {
+        "message": "Подозрение на массовую рассылку от %smtp.sender_ip%",
+        "from": "logreact",
+        "key": "spam_detected"
+      }
+    }
+  },
+  {
+    "rule": "AV_File_Access_Denied",
+    "ukey": "antivirus.log",
+    "params": {
+      "ttl": "5m",
+      "sev_level": 3,
+      "desc": "Блокировка доступа к потенциально заражённому файлу",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message CONTAINS 'Access to file denied'"
+    },
+    "alert": {
+      "fields": "event.file.path, host.name",
+      "addfields": {
+        "message": "Доступ к файлу %event.file.path% заблокирован на %host.name%",
+        "from": "logreact",
+        "key": "file_blocked"
+      }
+    }
+  },
+  {
+    "rule": "Linux_Cron_Backdoor",
+    "ukey": "syslog",
+    "params": {
+      "ttl": "1h",
+      "sev_level": 2,
+      "desc": "Подозрительная задача cron, возможно бэкдор",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.process.name == 'cron' AND event.command_line: '/tmp/'"
+    },
+    "alert": {
+      "fields": "host.name, event.command_line",
+      "addfields": {
+        "message": "Подозрительная cron-задача на %host.name%: %event.command_line%",
+        "from": "logreact",
+        "key": "cron_backdoor"
+      }
+    }
+  },
+  {
+    "rule": "USB_Device_Connected",
+    "ukey": "syslog",
+    "params": {
+      "sev_level": 2,
+      "desc": "Подключение USB-устройства",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message CONTAINS 'usb' AND event.message CONTAINS 'connected'"
+    },
+    "alert": {
+      "fields": "host.name",
+      "addfields": {
+        "message": "USB-устройство подключено на %host.name%",
+        "from": "logreact",
+        "key": "usb_connected"
+      }
+    }
+  },
+  {
+    "rule": "Shadow_File_Read",
+    "ukey": "auditd",
+    "params": {
+      "ttl": "5m",
+      "sev_level": 4,
+      "desc": "Попытка чтения /etc/shadow",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.syscall == 'open' AND event.filename == '/etc/shadow'"
+    },
+    "alert": {
+      "fields": "source.user, event.filename",
+      "addfields": {
+        "message": "Попытка чтения файла паролей %event.filename% пользователем %source.user%",
+        "from": "logreact",
+        "key": "shadow_read"
+      }
+    }
+  },
+  {
+    "rule": "System_Binary_Modified",
+    "ukey": "auditd",
+    "params": {
+      "ttl": "15m",
+      "sev_level": 5,
+      "desc": "Модификация системного бинарника",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.syscall == 'write' AND event.filename: '/usr/bin'"
+    },
+    "alert": {
+      "fields": "event.filename, source.user",
+      "addfields": {
+        "message": "Системный бинарник %event.filename% изменён пользователем %source.user%",
+        "from": "logreact",
+        "key": "system_bin_mod"
+      }
+    }
+  },
+  {
+    "rule": "Root_Login_SSH",
+    "ukey": "auth.log",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 7,
+      "desc": "Успешный вход по SSH под root",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message CONTAINS 'Accepted password for root'"
+    },
+    "alert": {
+      "fields": "source.ip, host.name",
+      "addfields": {
+        "message": "SSH-вход под root от %source.ip% на %host.name%",
+        "from": "logreact",
+        "key": "root_ssh"
+      }
+    }
+  },
+  {
+    "rule": "WebShell_Upload",
+    "ukey": "nginx.access",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 3,
+      "desc": "Попытка загрузки .php файла через web",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "http.uri: '.php' AND http.method == 'POST'"
+    },
+    "alert": {
+      "fields": "http.client_ip, http.uri",
+      "addfields": {
+        "message": "Попытка загрузки webshell от %http.client_ip% по %http.uri%",
+        "from": "logreact",
+        "key": "webshell_upload"
+      }
+    }
+  },
+  {
+    "rule": "Command_Execution_Via_Bash",
+    "ukey": "auditd",
+    "params": {
+      "ttl": "5m",
+      "sev_level": 2,
+      "desc": "Запуск команды wget из bash, возможная загрузка подозрительного скрипта",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.process.parent == 'bash' AND event.command_line CONTAINS 'wget'"
+    },
+    "alert": {
+      "fields": "event.command_line, source.user",
+      "addfields": {
+        "message": "Подозрительная команда от %source.user%: %event.command_line%",
+        "from": "logreact",
+        "key": "cmd_bash_wget"
+      }
+    }
+  },
+  {
+    "rule": "Nginx_Admin_Panel_Access",
+    "ukey": "nginx.access",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 3,
+      "desc": "Попытка доступа к /admin или /wp-admin",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "http.uri: '/admin' OR http.uri: '/wp-admin'"
+    },
+    "alert": {
+      "fields": "http.client_ip, http.uri",
+      "addfields": {
+        "message": "Попытка доступа к админке от %http.client_ip%: %http.uri%",
+        "from": "logreact",
+        "key": "admin_panel_access"
+      }
+    }
+  },
+  {
+    "rule": "Unauthorized_RDP_Connection",
+    "ukey": "windows.security",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 4,
+      "desc": "Несанкционированное подключение по RDP",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.id == 4624 AND event.logon_type == 10 AND source.user !-> 'TrustedUsers'"
+    },
+    "alert": {
+      "fields": "source.user, source.ip",
+      "addfields": {
+        "message": "Подозрительное RDP-подключение от %source.ip% под %source.user%",
+        "from": "logreact",
+        "key": "rdp_unauthorized"
+      }
+    }
+  },
+  {
+    "rule": "Sensitive_File_Opened",
+    "ukey": "auditd",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 4,
+      "desc": "Открыт чувствительный файл (например, /etc/passwd)",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.syscall == 'open' AND event.filename -> 'SensitiveFiles'"
+    },
+    "alert": {
+      "fields": "event.filename, source.user",
+      "addfields": {
+        "message": "Открыт чувствительный файл %event.filename% пользователем %source.user%",
+        "from": "logreact",
+        "key": "sensitive_file"
+      }
+    }
+  },
+  {
+    "rule": "SSH_Public_Key_Added",
+    "ukey": "auditd",
+    "params": {
+      "ttl": "1h",
+      "sev_level": 4,
+      "desc": "Добавление SSH-ключа в authorized_keys",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.filename CONTAINS 'authorized_keys' AND event.syscall == 'write'"
+    },
+    "alert": {
+      "fields": "event.filename, source.user",
+      "addfields": {
+        "message": "Добавлен SSH-ключ в %event.filename% пользователем %source.user%",
+        "from": "logreact",
+        "key": "ssh_key_added"
+      }
+    }
+  },
+  {
+    "rule": "Windows_PowerShell_Download",
+    "ukey": "windows.security",
+    "params": {
+      "ttl": "5m",
+      "sev_level": 4,
+      "desc": "PowerShell загружает файл из интернета",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.command_line CONTAINS 'Invoke-WebRequest' OR event.command_line CONTAINS 'iwr'"
+    },
+    "alert": {
+      "fields": "event.command_line, source.user",
+      "addfields": {
+        "message": "PowerShell-команда загрузки от %source.user%: %event.command_line%",
+        "from": "logreact",
+        "key": "ps_download"
+      }
+    }
+  },
+  {
+    "rule": "Unusual_RDP_Time",
+    "ukey": "windows.security",
+    "params": {
+      "ttl": "20m",
+      "sev_level": 3,
+      "desc": "Подключение к RDP в нерабочее время",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.id == 4624 AND event.logon_type == 10 AND timestamp.hour !-> 'WorkHours'"
+    },
+    "alert": {
+      "fields": "source.user, source.ip",
+      "addfields": {
+        "message": "Подозрительное RDP-подключение вне часов: %source.user% (%source.ip%)",
+        "from": "logreact",
+        "key": "rdp_off_hours"
+      }
+    }
+  },
+  {
+    "rule": "Malicious_Batch_Script",
+    "ukey": "windows.security",
+    "params": {
+      "ttl": "15m",
+      "sev_level": 4,
+      "desc": "Запуск возможного вредоносного .bat скрипта",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.process.name:'.bat' AND event.command_line: 'powershell'"
+    },
+    "alert": {
+      "fields": "event.command_line, source.user",
+      "addfields": {
+        "message": "Обнаружен вредоносный .bat скрипт от %source.user%",
+        "from": "logreact",
+        "key": "bat_malware"
+      }
+    }
+  },
+  {
+    "rule": "SSH_Without_Key_63",
+    "ukey": "auth.log",
+    "params": {
+      "ttl": "5m",
+      "sev_level": 3,
+      "desc": "Подключение по SSH без использования ключей",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message: 'Accepted password'"
+    },
+    "alert": {
+      "fields": "source.user, source.ip",
+      "addfields": {
+        "message": "Подключение по паролю по SSH: %source.user% с %source.ip%",
+        "from": "logreact",
+        "key": "ssh_password_login"
+      }
+    }
+  },
+  {
+    "rule": "Windows_Command_And_Control_64",
+    "ukey": "windows.security",
+    "params": {
+      "ttl": "15m",
+      "sev_level": 5,
+      "desc": "Возможное C2-соединение через PowerShell",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.command_line: 'Invoke-Expression' AND event.command_line: 'http'"
+    },
+    "alert": {
+      "fields": "source.user, event.command_line",
+      "addfields": {
+        "message": "C2 через PowerShell от %source.user%: %event.command_line%",
+        "from": "logreact",
+        "key": "powershell_c2"
+      }
+    }
+  },
+    {
+    "rule": "ICMP_Tunnel_Detected_67",
+    "ukey": "firewall.log",
+    "params": {
+      "ttl": "1m",
+      "sev_level": 4,
+      "desc": "Большое количество ICMP-пакетов — возможный туннель",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "net.protocol == 'ICMP' AND net.src_ip = $STICKY$",
+      "freq": "100/sec"
+    },
+    "alert": {
+      "fields": "net.src_ip",
+      "addfields": {
+        "message": "Возможный ICMP-туннель от %net.src_ip%",
+        "from": "logreact",
+        "key": "icmp_tunnel"
+      }
+    }
+  },
+  {
+    "rule": "Unusual_Port_Listening_70",
+    "ukey": "syslog",
+    "params": {
+      "ttl": "10m",
+      "sev_level": 4,
+      "desc": "Прослушивание нестандартного порта",
+      "no_alert": false
+    },
+    "condition": {
+      "logic": "event.message CONTAINS 'Listening on port' AND net.port !-> 'StandartPorts'"
+    },
+    "alert": {
+      "fields": "net.port, host.name",
+      "addfields": {
+        "message": "Прослушивание нестандартного порта %net.port% на %host.name%",
+        "from": "logreact",
+        "key": "unusual_port"
+      }
+    }
+  }
+]
