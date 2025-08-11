@@ -1,4 +1,4 @@
-# 📜 Open-Source Streaming Security Event Correlator
+# ***Logreact*** — Open-Source Streaming Security Event Correlator
 
 ## 📖 Project Description
 
@@ -6,7 +6,7 @@ This project implements a **real-time streaming security event correlator** with
 
 * 📌 Loading and executing **correlation rules** (JSON)
 * 📌 Support for **sticky variables** for multi-step scenarios
-* 📌 Data sources: **Kafka**, **HTTP API** (extensible)
+* 📌 Data sources: **Kafka**, **PostgreSQL** (extensible)
 * 📌 High performance (processing tens of thousands of events per second)
 * 📌 Log parsing and condition checking using **regular expressions**
 * 📌 Flexible architecture: easily add new data sources (`ReaderAgent`) and event processors
@@ -17,6 +17,10 @@ Use cases:
 * 🚨 Detection of network attacks (DoS, port scanning, brute-force, etc.)
 * 🛡 Log analysis for Linux, Windows, Nginx, Cisco, and other systems
 * 📡 Correlation of events across different sources
+
+Also there is frontend client for Logreact:
+
+[Frontend client](https://github.com/michae1iv/logreact_front)
 
 ---
 
@@ -40,7 +44,7 @@ Use cases:
 
 ### 1️⃣ Install dependencies
 
-Make sure you have Go **version 1.21+** installed and Kafka (if used as an event source).
+Make sure you have Go **version 1.21+** installed.
 
 ```bash
 git clone https://github.com/michae1iv/logreact
@@ -49,6 +53,7 @@ cd security-correlator
 # Install Go dependencies
 go mod tidy
 ```
+Install PostgreSQL, then add database, user with superuser permissions
 
 ---
 
@@ -112,7 +117,7 @@ authentication:
 ### 3️⃣ Build
 
 ```bash
-go build -o correlator ./cmd
+go build -o correlator
 ```
 
 ---
@@ -122,20 +127,34 @@ go build -o correlator ./cmd
 #### From binary:
 
 ```bash
-./correlator -config ./config/config.yaml
+./correlator
 ```
 
 #### From source:
 
 ```bash
-go run ./cmd -config ./config/config.yaml
+go run main.go
 ```
 
 ---
 
 ## 📜 Creating Correlation Rules
 
-Rules are described in JSON format. Example rule:
+Rules are described in JSON format.
+
+Operations:
+|Operation|Priority|Meaning|
+|:-|:-:|:-:|
+|AND / and|1|logical multiplication|
+|OR / or|0|logical sum|
+|:|2|checks if field contains value on right side|
+|= / ==|2|checks if field has same value on right side|
+|-> / contains|2|checks if field's value in list|
+|!:|2|NOT :|
+|!=|2|NOT =|
+|!->|2|NOT ->|
+
+Example rule:
 
 ```json
 {
@@ -171,9 +190,59 @@ Rules are described in JSON format. Example rule:
 
 ---
 
+## 🛠 Add Data Source
+
+**To add data source you need:** 
+1. Open file config/config.go and find Reader or Writer agent config then add new source, like this:
+```
+type WriterConfig struct {
+	Kafka   *KafkaProducerConfig `mapstructure:"kafka,omitempty"` // same name
+	Postgre *PostgreWriterConfig `mapstructure:"postgre,omitempty"` // same name
+}
+
+// * KafkaConfig Apache Kafka configuration
+type KafkaProducerConfig struct {
+	Enable      bool     `mapstructure:"enable"`
+	Brokers     []string `mapstructure:"brokers"`
+	Topic       string   `mapstructure:"topic"`
+	Acks        string   `mapstructure:"acks"`
+	Retries     int      `mapstructure:"retries"`
+	Сompression string   `mapstructure:"compression_type"`
+	LingerMS    int      `mapstructure:"linger_ms"`
+	BatchSize   int      `mapstructure:"batch_size"`
+}
+
+```
+3. Open file rw/[reader.go/writer.go], look at methods thats need to be defined
+4. Add package with your new agent
+5. Define new agent in reader.go **NOTE: name of agent in config.go and [reader.go/writer.go] should be the same**:
+```
+// Struct for defining agents and their struct, if you want to include new reader you need to write a struct and methods thats defined in ReaderAgent
+type Writers struct {
+	Kafka   *kafka.KafkaW // There must be a channel for each writer agent
+	Postgre *postgre.PostgreW
+}
+
+// Initialising new readers here
+var writers = &Writers{
+	Kafka:   kafka.NewWriter(), // same name
+	Postgre: postgre.NewWriter(), // same name
+}
+```
+
+---
+
 ## 📈 Performance
 
 With the built-in event generator, the application can process at least **20k events/sec** with single Kafka broker.
+
+Stand configuration:
+* OS: Ubuntu Ubuntu 24.04.2 LTS
+* SSD: 256 Gb
+* Memory: 32 Gb
+* Processor: AMD Ryzen 7 5700x
+* Single Apache Kafka Broker
+* Single Logreact app
 
 ---
 
